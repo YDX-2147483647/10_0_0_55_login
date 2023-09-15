@@ -1,5 +1,7 @@
 import hmac
 import json
+import re
+from base64 import b64encode
 from hashlib import sha1
 from typing import Optional
 from warnings import warn
@@ -138,3 +140,29 @@ class User:
         response = self.client.get("/cgi-bin/get_challenge", params=params)
         result = json.loads(response.text[6:-1])
         return result["challenge"]
+
+    def get_all_ips(self) -> list[str]:
+        """获取所有终端的 IP"""
+        # Raise exception if device is not logged in
+        # 可能还支持`f"zh-CN:{username}:{md5(password)}"`，但未验证
+        if self.logged_in_user is None:
+            raise Exception("you should log in to see all IP addresses")
+
+        response = self.client.get(
+            "http://10.0.0.54:8800/site/sso",
+            params={
+                "data": b64encode(
+                    f"zh-CN:{self.username}:{self.username}".encode("ascii")
+                ).decode("ascii")
+            },
+            follow_redirects=True,
+        )
+
+        # 捕获 IP 地址
+        # 为轻便，不解析 HTML，也不验证 IP 地址合法性
+        # 另外，校园网似乎只显示 IPv4，但这里也兼容 IPv6
+        addresses = re.findall(
+            R'<td class="w1" data-col-seq="1">([.\d:]+)</td>', response.text
+        )
+
+        return addresses

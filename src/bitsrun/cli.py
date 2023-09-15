@@ -75,6 +75,14 @@ def status(json: bool):
 
 
 @cli.command()
+def all_ips():
+    conf = read_config()
+    assert conf is not None
+    user = User(**conf[0])
+    click.echo("\n".join(user.get_all_ips()))
+
+
+@cli.command()
 @add_options(_options)
 def login(username, password, verbose):
     """Log into the BIT network."""
